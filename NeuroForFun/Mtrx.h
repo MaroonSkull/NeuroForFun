@@ -1,38 +1,38 @@
 ﻿#pragma once
 #include "definitions.h"
 
-/*template <typename T>
+template <typename T>
 class Mtrx {
-private:
+protected:
 	T* A;
 	int w;
 	int h;
 	bool isTransposed;
 
 	virtual T normalGaussDistribution() = 0;
-	virtual void gemm_v0(Mtrx<T>* X, Mtrx<T>* Y) = 0;
-	virtual void gemm_v1(Mtrx<T>* X, Mtrx<T>* Y) = 0;
+	virtual void gemm_v0(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
+	virtual void gemm_v1(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
 public:
 	virtual ~Mtrx() {};
-	virtual int XY(int height, int width) = 0;
-	virtual void print() = 0;
+	virtual void print() const = 0;
 	virtual void activation() = 0;
 	virtual void dActivation() = 0;
 	virtual void backActivation() = 0;
-	virtual void mult(Mtrx<T>* X, Mtrx<T>* Y) = 0;
-	virtual void lineMult(Mtrx<T>* X) = 0;
+	virtual void mult(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
+	virtual void lineMult(Mtrx<T>* Xinp) = 0;
 	virtual void coeffMult(float coeff) = 0;
-	virtual void lineSub(Mtrx<T>* X) = 0;
+	virtual void lineSub(Mtrx<T>* Xinp) = 0;
 	virtual void transpose() = 0;
 	virtual void set(int i, float num) = 0;
-	virtual int getW() = 0;
-	virtual int getH() = 0;
-	virtual T get(int h, int w) = 0;
+	virtual int getW() const = 0;
+	virtual int getH() const = 0;
+	virtual T get(int h, int w) const = 0;
+	virtual int XY(int height, int width) const = 0;
 };
-*/
+
 template <typename T>
-class Mtrx {
-private:
+class CpuMtrx : public Mtrx<T> {
+protected:
 	T* A;
 	int w;
 	int h;
@@ -49,7 +49,9 @@ private:
 	/*
 	* Умножение при транспонированной матрице Y
 	*/
-	void gemm_v0(Mtrx<T>* X, Mtrx<T>* Y) {
+	void gemm_v0(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
+		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* Y = dynamic_cast<CpuMtrx<T>*>(Yinp);
 		FOR(i, X->h) {// i = высота первой матрицы
 			FOR(j, Y->w) { // j = ширина второй матрицы
 				int c = XY(i, j);
@@ -61,7 +63,10 @@ private:
 		}
 	};
 
-	void gemm_v1(Mtrx<T>* X, Mtrx<T>* Y) {
+	void gemm_v1(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
+		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* Y = dynamic_cast<CpuMtrx<T>*>(Yinp);
+
 		//int M = X.h;
 		//int K = X.w;
 		//int N = Y.w;
@@ -78,46 +83,36 @@ private:
 			}
 		}
 	};
+
 public:
-	Mtrx(int h, int w, bool clear) {
+	CpuMtrx(int h, int w, bool clear) {
 		this->h = h;
 		this->w = w;
-		this->A = new T[h * w];
+		A = new T[h * w];
 		if (clear) FOR(i, w * h)
-			this->A[i] = 0;
+			A[i] = 0;
 		else FOR(i, w * h)
-			this->A[i] = normalGaussDistribution();
+			A[i] = normalGaussDistribution();
 	};
 
-	Mtrx(int Height, int Width) : Mtrx(Height, Width, !CLEAR) {} // по умолчанию у нас всё заполняется случайными данными
+	CpuMtrx(int Height, int Width) : CpuMtrx(Height, Width, !CLEAR) {} // по умолчанию у нас всё заполняется случайными данными
 
-	Mtrx(const Mtrx<T>& mtrx) {
-		this->w = mtrx.w;
-		this->h = mtrx.h;
-		this->isTransposed = mtrx.isTransposed;
+	CpuMtrx(const Mtrx<T>& mtrx) : Mtrx<T>(mtrx) {
+		const CpuMtrx<T>& X = dynamic_cast<const CpuMtrx<T>&>(mtrx);
+		w = X.w;
+		h = X.h;
+		isTransposed = X.isTransposed;
 
-		this->A = new T[h * w];
+		A = new T[h * w];
 		FOR(i, w * h)
-			this->A[i] = mtrx.A[i];
+			A[i] = X.A[i];
 	};
 
-	~Mtrx() {
-		delete[] this->A;
+	~CpuMtrx() {
+		delete[] A;
 	};
 
-	/*
-	* Функция получает координаты двумерного массива и
-	* преобразовывает их в координату одномерного
-	* массива, хранящегося в памяти объекта.
-	*/
-	int XY(int height, int width) {
-		if (!isTransposed)
-			return w * height + width;
-		else
-			return h * width + height;
-	};
-
-	void print() {
+	void print() const {
 		FOR(j, h) {
 			FOR(i, w) {
 				std::cout << get(j, i) << "\t";
@@ -152,17 +147,20 @@ public:
 	};
 
 	// скалярное произведение двух матриц
-	void mult(Mtrx<T>* X, Mtrx<T>* Y) {
+	void mult(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
+		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* Y = dynamic_cast<CpuMtrx<T>*>(Yinp);
 		if (X->w != Y->h) {
 			std::cout << "error in matrix multiplication function. (width 1st and height 2nd matrix is not equal) \r\n";
 			return;
 		}
-		if (isTransposed or Y->isTransposed) gemm_v0(X, Y);
-		else gemm_v1(X, Y);
+		if (isTransposed or Y->isTransposed) gemm_v0(Xinp, Yinp);
+		else gemm_v1(Xinp, Yinp);
 	};
 
 	// поэлементное умножение двух матриц
-	void lineMult(Mtrx<T>* X) {
+	void lineMult(Mtrx<T>* Xinp) {
+		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
 		if (X->w != w or X->h != h) {
 			std::cout << "error in linear matrix multiplication function. (widths & heights matrix's is not equal) \r\n";
 			return;
@@ -180,7 +178,8 @@ public:
 	};
 
 	// поэлементное вычитание из первой матрицы матрицы X
-	void lineSub(Mtrx<T>* X) {
+	void lineSub(Mtrx<T>* Xinp) {
+		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
 		if (X->w != w or X->h != h) {
 			std::cout << "error in linear matrix addiction function. (widths & heights matrix's is not equal) \r\n";
 			return;
@@ -216,16 +215,28 @@ public:
 		A[i] = num;
 	};
 
-	int getW() {
+	int getW() const {
 		return w;
 	};
 
-	int getH() {
+	int getH() const {
 		return h;
 	};
 
-	T get(int h, int w) {
+	T get(int h, int w) const {
 		return A[XY(h, w)];
+	};
+
+	/*
+	* Функция получает координаты двумерного массива и
+	* преобразовывает их в координату одномерного
+	* массива, хранящегося в памяти объекта.
+	*/
+	int XY(int height, int width) const {
+		if (!isTransposed)
+			return w * height + width;
+		else
+			return h * width + height;
 	};
 };
 
@@ -430,10 +441,12 @@ public:
 };*/
 
 // Фабрики матриц
-/*template <typename T>
+template <typename T>
 class Factory {
 public:
-	virtual Mtrx<T>* create() = 0;
+	virtual Mtrx<T>* create(int h, int w, bool clear) = 0;
+	virtual Mtrx<T>* create(int h, int w) = 0;
+	virtual Mtrx<T>* create(const Mtrx<T>& mtrx) = 0;
 	virtual ~Factory() {}
 };
 
@@ -449,10 +462,8 @@ public:
 	Mtrx<T>* create(const Mtrx<T>& mtrx) {
 		return new CpuMtrx<T>(mtrx);
 	}
-	~CPUMtrxFactory() {
-
-	}
-};*/
+	~CPUMtrxFactory() {}
+};
 
 /*template <typename T>
 class GPUMtrxFactory : public Factory<T> {

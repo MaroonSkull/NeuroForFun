@@ -118,28 +118,31 @@ int main() {
 	std::cout << "done in " << duration / 1e6 << " seconds" << std::endl;
 	*/
 
-	Mtrx<double>* A = new Mtrx<double>(2, 3, CLEAR);
-	Mtrx<double>* B = new Mtrx<double>(4, 3, CLEAR);
-	Mtrx<double>* C = new Mtrx<double>(2, 4);
+	CPUMtrxFactory<double>* cpuMtrxFactory = new CPUMtrxFactory<double>;
 
-	FOR(i, A->getH() * A->getW())
-		A->set(i, i);
-	FOR(i, B->getH() * B->getW())
-		B->set(i, i);
+	std::vector<Mtrx<double>*> mtrxs;
+	mtrxs.push_back(cpuMtrxFactory->create(2, 3, CLEAR));
+	mtrxs.push_back(cpuMtrxFactory->create(4, 3, CLEAR));
+	mtrxs.push_back(cpuMtrxFactory->create(2, 4));
 
-	B->transpose();
+	FOR(i, mtrxs[0]->getH() * mtrxs[0]->getW())
+		mtrxs[0]->set(i, i);
+	FOR(i, mtrxs[1]->getH() * mtrxs[1]->getW())
+		mtrxs[1]->set(i, i);
+
+	mtrxs[1]->transpose();
 
 	std::cout << "A--------------\n";
-	A->print();
+	mtrxs[0]->print();
 	std::cout << "\nB--------------\n";
-	B->print();
+	mtrxs[1]->print();
 	std::cout << "\nC--------------\n";
-	C->print();
+	mtrxs[2]->print();
 
-	C->mult(A, B);
+	mtrxs[2]->mult(mtrxs[0], mtrxs[1]);
 
 	std::cout << "\nC = A*B--------\n";
-	C->print();
-
+	mtrxs[2]->print();
+	// добавить проверку конструктора копирования
 	return 0;
 }
