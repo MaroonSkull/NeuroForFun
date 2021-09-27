@@ -1,31 +1,31 @@
-#pragma once
+п»ї#pragma once
 
 #define CLEAR true
 
-constexpr int LAYERS_COUNT = 6; // перенести этот блок в данные, которые передаются в код.
+constexpr int LAYERS_COUNT = 6; // РїРµСЂРµРЅРµСЃС‚Рё СЌС‚РѕС‚ Р±Р»РѕРє РІ РґР°РЅРЅС‹Рµ, РєРѕС‚РѕСЂС‹Рµ РїРµСЂРµРґР°СЋС‚СЃСЏ РІ РєРѕРґ.
 constexpr int INPUT_SIZE = 1;
 constexpr int OUTPUT_SIZE = 1;
-constexpr int TRAINSET_SIZE = 20; // кол-во примеров для тренировки
+constexpr int TRAINSET_SIZE = 20; // РєРѕР»-РІРѕ РїСЂРёРјРµСЂРѕРІ РґР»СЏ С‚СЂРµРЅРёСЂРѕРІРєРё
 
-// это фичи
+// СЌС‚Рѕ С„РёС‡Рё
 #define FOR(I,UPPERBND) for(int I = 0; I<int(UPPERBND); I++)
 #define _ALIGN(N)  __declspec(align(N))
 
-// это классика
+// СЌС‚Рѕ РєР»Р°СЃСЃРёРєР°
 #include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <cmath>
-// для рандома
+// РґР»СЏ СЂР°РЅРґРѕРјР°
 #include <random>
 #include <ctime>
-// для бенчмаркинга
+// РґР»СЏ Р±РµРЅС‡РјР°СЂРєРёРЅРіР°
 #include <chrono>
-// ну нефига себя, вот это ты даёшь...
+// РЅСѓ РЅРµС„РёРіР° СЃРµР±СЏ, РІРѕС‚ СЌС‚Рѕ С‚С‹ РґР°С‘С€СЊ...
 #include <thread>
 #include <mutex>
 
-// глобальные функции
+// РіР»РѕР±Р°Р»СЊРЅС‹Рµ С„СѓРЅРєС†РёРё
 template <typename T>
 T random(T low, T high);
