@@ -9,7 +9,7 @@ protected:
 	int h;
 	bool isTransposed;
 
-	virtual T normalGaussDistribution() = 0;
+	virtual T normalGaussDistribution() const = 0;
 	virtual void gemm_v0(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
 	virtual void gemm_v1(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
 public:
@@ -38,7 +38,7 @@ protected:
 	int h;
 	bool isTransposed = false;
 
-	T normalGaussDistribution() {
+	T normalGaussDistribution() const {
 		//float rand = (float)std::rand() / (RAND_MAX / 2) - 1; // получаем число, принадлежащее (-1; 1]
 		T rand = random<T>(-1, 1); // получаем число, принадлежащее (-1; 1]
 		T g = exp(-(pow(rand, 2) / (2 * 0.2))) / (sqrt(0.2) * 2.5); // делаем красивый колокольчик
@@ -50,8 +50,8 @@ protected:
 	* Умножение при транспонированной матрице Y
 	*/
 	void gemm_v0(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
-		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
-		CpuMtrx<T>* Y = dynamic_cast<CpuMtrx<T>*>(Yinp);
+		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* Y = static_cast<CpuMtrx<T>*>(Yinp);
 		FOR(i, X->h) {// i = высота первой матрицы
 			FOR(j, Y->w) { // j = ширина второй матрицы
 				int c = XY(i, j);
@@ -64,8 +64,8 @@ protected:
 	};
 
 	void gemm_v1(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
-		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
-		CpuMtrx<T>* Y = dynamic_cast<CpuMtrx<T>*>(Yinp);
+		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* Y = static_cast<CpuMtrx<T>*>(Yinp);
 
 		//int M = X.h;
 		//int K = X.w;
@@ -98,7 +98,7 @@ public:
 	CpuMtrx(int Height, int Width) : CpuMtrx(Height, Width, !CLEAR) {} // по умолчанию у нас всё заполняется случайными данными
 
 	CpuMtrx(const Mtrx<T>& mtrx) : Mtrx<T>(mtrx) {
-		const CpuMtrx<T>& X = dynamic_cast<const CpuMtrx<T>&>(mtrx);
+		const CpuMtrx<T>& X = static_cast<const CpuMtrx<T>&>(mtrx);
 		w = X.w;
 		h = X.h;
 		isTransposed = X.isTransposed;
@@ -148,8 +148,8 @@ public:
 
 	// скалярное произведение двух матриц
 	void mult(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
-		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
-		CpuMtrx<T>* Y = dynamic_cast<CpuMtrx<T>*>(Yinp);
+		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* Y = static_cast<CpuMtrx<T>*>(Yinp);
 		if (X->w != Y->h) {
 			std::cout << "error in matrix multiplication function. (width 1st and height 2nd matrix is not equal) \r\n";
 			return;
@@ -168,7 +168,7 @@ public:
 
 	// поэлементное умножение двух матриц
 	void lineMult(Mtrx<T>* Xinp) {
-		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
 		if (X->w != w or X->h != h) {
 			std::cout << "error in linear matrix multiplication function. (widths & heights matrix's is not equal) \r\n";
 			return;
@@ -187,7 +187,7 @@ public:
 
 	// поэлементное вычитание из первой матрицы матрицы X
 	void lineSub(Mtrx<T>* Xinp) {
-		CpuMtrx<T>* X = dynamic_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
 		if (X->w != w or X->h != h) {
 			std::cout << "error in linear matrix addiction function. (widths & heights matrix's is not equal) \r\n";
 			return;
