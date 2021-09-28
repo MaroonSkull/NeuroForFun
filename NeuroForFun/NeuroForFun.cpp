@@ -24,10 +24,10 @@ T func(T x) {
 * Всего функция делает cols срезов.
 */
 template <typename T>
-void get(int* layersSizes, TrainSet<T>* trainset, T alpha, T epochs, int cols) {
+void get(int* layersSizes, TrainSet<T>* trainset, T alpha, T epochs, int cols, MtrxFactory<T>* mtrxFactory) {
 	/*float bestAlpha, bestMSE = INFINITY, MSE;
 	Neuro* bestINN = nullptr;*/
-	Neuro<T>* INN = new Neuro<T>(layersSizes, trainset);
+	Neuro<T>* INN = new Neuro<T>(layersSizes, trainset, mtrxFactory);
 	T* MSE = new T[cols];
 	auto t1 = std::chrono::high_resolution_clock::now();
 	FOR(i, cols) {
@@ -84,7 +84,7 @@ void get(int* layersSizes, TrainSet<T>* trainset, T alpha, T epochs, int cols) {
 }
 
 int main() {
-	/*float trIn[TRAINSET_SIZE * INPUT_SIZE];
+	float trIn[TRAINSET_SIZE * INPUT_SIZE];
 	float trOut[TRAINSET_SIZE * OUTPUT_SIZE];
 
 	float x = 0, maxX = 3, num = 20, stepX = (maxX - x) / (num - 1);
@@ -104,21 +104,22 @@ int main() {
 
 	auto t1 = std::chrono::high_resolution_clock::now();
 
+	MtrxFactory<float>* cpuMtrxFactory = new CPUMtrxFactory<float>;
 	std::vector<std::thread> threads;
 	std::vector<TrainSet<float>*> trainsets;
 	FOR(i, count) {
 		alpha += step;
 		trainsets.push_back(new TrainSet<float>(trIn, trOut));
-		threads.push_back(std::thread(get<float>, layersSizes, trainsets[i], alpha, epochs, cols)); //а результаты кто собирать будет?
+		threads.push_back(std::thread(get<float>, layersSizes, trainsets[i], alpha, epochs, cols, cpuMtrxFactory)); //а результаты кто собирать будет?
 	}
 	FOR(i, count) threads[i].join();
 
 	auto t2 = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 	std::cout << "done in " << duration / 1e6 << " seconds" << std::endl;
-	*/
+	
 
-	CPUMtrxFactory<double>* cpuMtrxFactory = new CPUMtrxFactory<double>;
+	/*MtrxFactory<double>* cpuMtrxFactory = new CPUMtrxFactory<double>;
 
 	std::vector<Mtrx<double>*> mtrxs;
 	mtrxs.push_back(cpuMtrxFactory->create(2, 3, CLEAR));
@@ -142,7 +143,7 @@ int main() {
 	mtrxs[2]->mult(mtrxs[0], mtrxs[1]);
 
 	std::cout << "\nC = A*B--------\n";
-	mtrxs[2]->print();
+	mtrxs[2]->print();*/
 	// добавить проверку конструктора копирования
 	return 0;
 }

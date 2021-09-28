@@ -22,16 +22,17 @@ private:
 
 public:
 	T MSE;
-	Neuro(int* sizes, TrainSet<T>* trSet) {
+	Neuro(int* sizes, TrainSet<T>* trSet, MtrxFactory<T>* mtrxFactory) {
 		trainIn = new T[INPUT_SIZE];
 		trainOut = new T[OUTPUT_SIZE];
 		this->trSet = trSet;
+
 		FOR(i, LAYERS_COUNT) // создаём матрицы для промежуточных вычислений
-			layers.push_back(new Mtrx<T>(sizes[i], 1, CLEAR));
+			layers.push_back(mtrxFactory->create(sizes[i], 1, CLEAR));
 		FOR(i, LAYERS_COUNT - 1) { // создаём матрицы для хранения весов и их дельт
-			weights.push_back(new Mtrx<T>(sizes[i + 1], sizes[i]));
-			deltas.push_back(new Mtrx<T>(sizes[i + 1], sizes[i], CLEAR));
-			errors.push_back(new Mtrx<T>(sizes[i + 1], 1, CLEAR));
+			weights.push_back(mtrxFactory->create(sizes[i + 1], sizes[i]));
+			deltas.push_back(mtrxFactory->create(sizes[i + 1], sizes[i], CLEAR));
+			errors.push_back(mtrxFactory->create(sizes[i + 1], 1, CLEAR));
 		}
 		// тут нужно нормально потом как-нибудь инициализировать bias
 		//bias = new float[sizeof(sizess)];

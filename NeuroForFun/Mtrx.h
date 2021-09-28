@@ -154,6 +154,14 @@ public:
 			std::cout << "error in matrix multiplication function. (width 1st and height 2nd matrix is not equal) \r\n";
 			return;
 		}
+		if (X->h != h) {
+			std::cout << "error in matrix multiplication function. (height 1st and height result matrix is not equal) \r\n";
+			return;
+		}
+		if (Y->w != w) {
+			std::cout << "error in matrix multiplication function. (width 2nd and width result matrix is not equal) \r\n";
+			return;
+		}
 		if (isTransposed or Y->isTransposed) gemm_v0(Xinp, Yinp);
 		else gemm_v1(Xinp, Yinp);
 	};
@@ -442,16 +450,16 @@ public:
 
 // Фабрики матриц
 template <typename T>
-class Factory {
+class MtrxFactory {
 public:
 	virtual Mtrx<T>* create(int h, int w, bool clear) = 0;
 	virtual Mtrx<T>* create(int h, int w) = 0;
 	virtual Mtrx<T>* create(const Mtrx<T>& mtrx) = 0;
-	virtual ~Factory() {}
+	virtual ~MtrxFactory() {}
 };
 
 template <typename T>
-class CPUMtrxFactory : public Factory<T> {
+class CPUMtrxFactory : public MtrxFactory<T> {
 public:
 	Mtrx<T>* create(int h, int w, bool clear) {
 		return new CpuMtrx<T>(h, w, clear);
