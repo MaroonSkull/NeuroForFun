@@ -10,8 +10,6 @@ protected:
 	bool isTransposed;
 
 	virtual T normalGaussDistribution() const = 0;
-	virtual void gemm_v0(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
-	virtual void gemm_v1(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
 public:
 	virtual ~Mtrx() {};
 	virtual void print() const = 0;
