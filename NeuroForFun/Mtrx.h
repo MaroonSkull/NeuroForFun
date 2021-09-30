@@ -4,10 +4,10 @@
 template <typename T>
 class Mtrx {
 protected:
-	T* A;
-	int w;
-	int h;
-	bool isTransposed;
+	T *A = nullptr;
+	int w = NULL;
+	int h = NULL;
+	bool isTransposed = NULL;
 
 	virtual T normalGaussDistribution() const = 0;
 public:
@@ -16,10 +16,10 @@ public:
 	virtual void activation() = 0;
 	virtual void dActivation() = 0;
 	virtual void backActivation() = 0;
-	virtual void mult(Mtrx<T>* Xinp, Mtrx<T>* Yinp) = 0;
-	virtual void lineMult(Mtrx<T>* Xinp) = 0;
+	virtual void mult(Mtrx<T> *Xinp, Mtrx<T> *Yinp) = 0;
+	virtual void lineMult(Mtrx<T> *Xinp) = 0;
 	virtual void coeffMult(float coeff) = 0;
-	virtual void lineSub(Mtrx<T>* Xinp) = 0;
+	virtual void lineSub(Mtrx<T> *Xinp) = 0;
 	virtual void transpose() = 0;
 	virtual void set(int i, float num) = 0;
 	virtual int getW() const = 0;
@@ -29,9 +29,9 @@ public:
 };
 
 template <typename T>
-class CpuMtrx : public Mtrx<T> {
+class CpuMtrx: public Mtrx<T> {
 protected:
-	T* A;
+	T *A;
 	int w;
 	int h;
 	bool isTransposed = false;
@@ -40,16 +40,16 @@ protected:
 		//float rand = (float)std::rand() / (RAND_MAX / 2) - 1; // получаем число, принадлежащее (-1; 1]
 		T rand = random<T>(-1, 1); // получаем число, принадлежащее (-1; 1]
 		T g = exp(-(pow(rand, 2) / (2 * 0.2))) / (sqrt(0.2) * 2.5); // делаем красивый колокольчик
-		if (rand >= 0) return g;
+		if(rand >= 0) return g;
 		return -g; // переворачиваем, если число изначально было отрицательным
 	};
 
 	/*
 	* Умножение при транспонированной матрице Y
 	*/
-	void gemm_v0(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
-		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
-		CpuMtrx<T>* Y = static_cast<CpuMtrx<T>*>(Yinp);
+	void gemm_v0(Mtrx<T> *Xinp, Mtrx<T> *Yinp) {
+		CpuMtrx<T> *X = static_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T> *Y = static_cast<CpuMtrx<T>*>(Yinp);
 		FOR(i, X->h) {// i = высота первой матрицы
 			FOR(j, Y->w) { // j = ширина второй матрицы
 				int c = XY(i, j);
@@ -61,21 +61,21 @@ protected:
 		}
 	};
 
-	void gemm_v1(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
-		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
-		CpuMtrx<T>* Y = static_cast<CpuMtrx<T>*>(Yinp);
+	void gemm_v1(Mtrx<T> *Xinp, Mtrx<T> *Yinp) {
+		CpuMtrx<T> *X = static_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T> *Y = static_cast<CpuMtrx<T>*>(Yinp);
 
 		//int M = X.h;
 		//int K = X.w;
 		//int N = Y.w;
 
-		T* B = Y->A;
+		T *B = Y->A;
 
 		FOR(i, X->h) {
-			T* c = A + i * Y->w;   // строка #i из матрицы C
+			T *c = A + i * Y->w;   // строка #i из матрицы C
 			FOR(j, Y->w) c[j] = 0;
 			FOR(k, X->w) {
-				const T* b = B + k * Y->w; // строка #k из матрицы B
+				const T *b = B + k * Y->w; // строка #k из матрицы B
 				T a = X->get(i, k); // перебор всех значений из строки #i в матрице A
 				FOR(j, Y->w) c[j] += a * b[j];
 			}
@@ -87,16 +87,16 @@ public:
 		this->h = h;
 		this->w = w;
 		A = new T[h * w];
-		if (clear) FOR(i, w * h)
+		if(clear) FOR(i, w * h)
 			A[i] = 0;
 		else FOR(i, w * h)
 			A[i] = normalGaussDistribution();
 	};
 
-	CpuMtrx(int Height, int Width) : CpuMtrx(Height, Width, !CLEAR) {} // по умолчанию у нас всё заполняется случайными данными
+	CpuMtrx(int Height, int Width): CpuMtrx(Height, Width, !CLEAR) {} // по умолчанию у нас всё заполняется случайными данными
 
-	CpuMtrx(const Mtrx<T>& mtrx) : Mtrx<T>(mtrx) {
-		const CpuMtrx<T>& X = static_cast<const CpuMtrx<T>&>(mtrx);
+	CpuMtrx(const Mtrx<T> &mtrx): Mtrx<T>(mtrx) {
+		const CpuMtrx<T> &X = static_cast<const CpuMtrx<T>&>(mtrx);
 		w = X.w;
 		h = X.h;
 		isTransposed = X.isTransposed;
@@ -145,29 +145,29 @@ public:
 	};
 
 	// скалярное произведение двух матриц
-	void mult(Mtrx<T>* Xinp, Mtrx<T>* Yinp) {
-		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
-		CpuMtrx<T>* Y = static_cast<CpuMtrx<T>*>(Yinp);
-		if (X->w != Y->h) {
+	void mult(Mtrx<T> *Xinp, Mtrx<T> *Yinp) {
+		CpuMtrx<T> *X = static_cast<CpuMtrx<T>*>(Xinp);
+		CpuMtrx<T> *Y = static_cast<CpuMtrx<T>*>(Yinp);
+		if(X->w != Y->h) {
 			std::cout << "error in matrix multiplication function. (width 1st and height 2nd matrix is not equal) \r\n";
 			return;
 		}
-		if (X->h != h) {
+		if(X->h != h) {
 			std::cout << "error in matrix multiplication function. (height 1st and height result matrix is not equal) \r\n";
 			return;
 		}
-		if (Y->w != w) {
+		if(Y->w != w) {
 			std::cout << "error in matrix multiplication function. (width 2nd and width result matrix is not equal) \r\n";
 			return;
 		}
-		if (isTransposed or Y->isTransposed) gemm_v0(Xinp, Yinp);
+		if(isTransposed or Y->isTransposed) gemm_v0(Xinp, Yinp);
 		else gemm_v1(Xinp, Yinp);
 	};
 
 	// поэлементное умножение двух матриц
-	void lineMult(Mtrx<T>* Xinp) {
-		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
-		if (X->w != w or X->h != h) {
+	void lineMult(Mtrx<T> *Xinp) {
+		CpuMtrx<T> *X = static_cast<CpuMtrx<T>*>(Xinp);
+		if(X->w != w or X->h != h) {
 			std::cout << "error in linear matrix multiplication function. (widths & heights matrix's is not equal) \r\n";
 			return;
 		}
@@ -184,9 +184,9 @@ public:
 	};
 
 	// поэлементное вычитание из первой матрицы матрицы X
-	void lineSub(Mtrx<T>* Xinp) {
-		CpuMtrx<T>* X = static_cast<CpuMtrx<T>*>(Xinp);
-		if (X->w != w or X->h != h) {
+	void lineSub(Mtrx<T> *Xinp) {
+		CpuMtrx<T> *X = static_cast<CpuMtrx<T>*>(Xinp);
+		if(X->w != w or X->h != h) {
 			std::cout << "error in linear matrix addiction function. (widths & heights matrix's is not equal) \r\n";
 			return;
 		}
@@ -203,7 +203,7 @@ public:
 	*/
 	void transpose() {
 		// свап значений всех переменных
-		if (h + w <= 0xffff) {
+		if(h + w <= 0xffff) {
 			h += w;
 			w = h - w;
 			h -= w;
@@ -239,7 +239,7 @@ public:
 	* массива, хранящегося в памяти объекта.
 	*/
 	int XY(int height, int width) const {
-		if (!isTransposed)
+		if(!isTransposed)
 			return w * height + width;
 		else
 			return h * width + height;
@@ -450,22 +450,22 @@ public:
 template <typename T>
 class MtrxFactory {
 public:
-	virtual Mtrx<T>* create(int h, int w, bool clear) = 0;
-	virtual Mtrx<T>* create(int h, int w) = 0;
-	virtual Mtrx<T>* create(const Mtrx<T>& mtrx) = 0;
+	virtual Mtrx<T> *create(int h, int w, bool clear) = 0;
+	virtual Mtrx<T> *create(int h, int w) = 0;
+	virtual Mtrx<T> *create(const Mtrx<T> &mtrx) = 0;
 	virtual ~MtrxFactory() {}
 };
 
 template <typename T>
-class CPUMtrxFactory : public MtrxFactory<T> {
+class CPUMtrxFactory: public MtrxFactory<T> {
 public:
-	Mtrx<T>* create(int h, int w, bool clear) {
+	Mtrx<T> *create(int h, int w, bool clear) {
 		return new CpuMtrx<T>(h, w, clear);
 	}
-	Mtrx<T>* create(int Height, int Width) {
+	Mtrx<T> *create(int Height, int Width) {
 		return new CpuMtrx<T>(Height, Width);
 	}
-	Mtrx<T>* create(const Mtrx<T>& mtrx) {
+	Mtrx<T> *create(const Mtrx<T> &mtrx) {
 		return new CpuMtrx<T>(mtrx);
 	}
 	~CPUMtrxFactory() {}

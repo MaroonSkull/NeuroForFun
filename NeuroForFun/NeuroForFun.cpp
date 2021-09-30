@@ -10,7 +10,7 @@ T random(T low, T high) {
 	thread_local static std::random_device rd;
 	thread_local static std::mt19937 rng(rd());
 	thread_local std::uniform_real_distribution<> urd;
-	return urd(rng, decltype(urd)::param_type{ low,high });
+	return urd(rng, decltype(urd)::param_type{low,high});
 }
 
 template <typename T>
@@ -24,11 +24,11 @@ T func(T x) {
 * Всего функция делает cols срезов.
 */
 template <typename T>
-void get(int* layersSizes, TrainSet<T>* trainset, T alpha, T epochs, int cols, MtrxFactory<T>* mtrxFactory) {
+void get(int *layersSizes, TrainSet<T> *trainset, T alpha, T epochs, int cols, MtrxFactory<T> *mtrxFactory) {
 	/*float bestAlpha, bestMSE = INFINITY, MSE;
 	Neuro* bestINN = nullptr;*/
-	Neuro<T>* INN = new Neuro<T>(layersSizes, trainset, mtrxFactory);
-	T* MSE = new T[cols];
+	Neuro<T> *INN = new Neuro<T>(layersSizes, trainset, mtrxFactory);
+	T *MSE = new T[cols];
 	auto t1 = std::chrono::high_resolution_clock::now();
 	FOR(i, cols) {
 		FOR(j, epochs) {
@@ -54,8 +54,8 @@ void get(int* layersSizes, TrainSet<T>* trainset, T alpha, T epochs, int cols, M
 	auto t2 = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
-	T* in = new T[INPUT_SIZE];
-	T* out = new T[OUTPUT_SIZE];
+	T *in = new T[INPUT_SIZE];
+	T *out = new T[OUTPUT_SIZE];
 
 
 	mu.lock();
@@ -95,18 +95,19 @@ int main() {
 		x += stepX;
 	}
 	// надо придумать, как слои и их размеры настраивать
-	int* layersSizes = new int[LAYERS_COUNT] { INPUT_SIZE, 10, 10, 10, 10, OUTPUT_SIZE };
+	int *layersSizes = new int[LAYERS_COUNT] { INPUT_SIZE, 10, 10, 10, 10, OUTPUT_SIZE };
 
 	std::cout << "Available for use: " << std::thread::hardware_concurrency() << " threads" << std::endl;
 	//скорость обучения где-то в районе 1/(количество нейронов)
 	// мб ещё от количества синапсов зависит, чекнуть
-	float alpha = 0, max = 0.008, count = std::thread::hardware_concurrency(), step = (max - alpha) / count, epochs = 1000, cols = 10; // тут вопросики
+	int count = std::thread::hardware_concurrency(), epochs = 1000, cols = 10; // тут вопросики
+	float alpha{0.f}, max{0.008f}, step = (max - alpha) / count;
 
 	auto t1 = std::chrono::high_resolution_clock::now();
 
-	MtrxFactory<float>* cpuMtrxFactory = new CPUMtrxFactory<float>;
+	MtrxFactory<float> *cpuMtrxFactory = new CPUMtrxFactory<float>;
 	std::vector<std::thread> threads;
-	std::vector<TrainSet<float>*> trainsets;
+	std::vector<TrainSet<float> *> trainsets;
 	FOR(i, count) {
 		alpha += step;
 		trainsets.push_back(new TrainSet<float>(trIn, trOut));
@@ -117,7 +118,7 @@ int main() {
 	auto t2 = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 	std::cout << "done in " << duration / 1e6 << " seconds" << std::endl;
-	
+
 
 	/*MtrxFactory<double>* cpuMtrxFactory = new CPUMtrxFactory<double>;
 
