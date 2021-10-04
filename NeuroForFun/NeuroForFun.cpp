@@ -110,7 +110,7 @@ int main() {
 	std::vector<TrainSet<float> *> trainsets;
 	FOR(i, count) {
 		alpha += step;
-		trainsets.push_back(new TrainSet<float>(trIn, trOut));
+		trainsets.push_back(new TrainSet<float>(trIn, trOut, TRAINSET_SIZE, INPUT_SIZE, OUTPUT_SIZE));
 		threads.push_back(std::thread(get<float>, layersSizes, trainsets[i], alpha, epochs, cols, cpuMtrxFactory)); //а результаты кто собирать будет?
 	}
 	FOR(i, count) threads[i].join();
