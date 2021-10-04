@@ -25,7 +25,8 @@ constexpr int TRAINSET_SIZE = 20; // кол-во примеров для тре�
 // ну нефига себя, вот это ты даёшь...
 #include <thread>
 #include <mutex>
-
+// логгирование
+#include "Logger.h"
 // глобальные функции
 template <typename T>
 T random(T low, T high);

@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="definitions.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="Mtrx.h" />
     <ClInclude Include="Neuro.h" />
     <ClInclude Include="TrainSet.h" />
