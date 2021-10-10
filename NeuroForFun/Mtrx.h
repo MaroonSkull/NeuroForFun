@@ -9,7 +9,6 @@ protected:
 	int h = NULL;
 	bool isTransposed = NULL;
 
-	virtual T normalGaussDistribution() const = 0;
 public:
 	virtual ~Mtrx() {};
 	virtual void print() const = 0;

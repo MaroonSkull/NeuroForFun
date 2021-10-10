@@ -36,4 +36,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="Main.cu">
+      <Filter>Исходные файлы</Filter>
+    </CudaCompile>
+  </ItemGroup>
 </Project>

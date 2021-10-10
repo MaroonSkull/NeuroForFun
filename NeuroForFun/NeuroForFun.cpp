@@ -83,7 +83,7 @@ void get(int *layersSizes, TrainSet<T> *trainset, T alpha, T epochs, int cols, M
 	delete[] in, out;
 }
 
-int main() {
+int neuroF() {
 	float trIn[TRAINSET_SIZE * INPUT_SIZE];
 	float trOut[TRAINSET_SIZE * OUTPUT_SIZE];
 
