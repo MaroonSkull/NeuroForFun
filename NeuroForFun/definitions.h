@@ -14,6 +14,7 @@ constexpr int TRAINSET_SIZE = 20; // кол-во примеров для тре�
 // это классика
 #include <iomanip>
 #include <iostream>
+#include <stdio.h>
 #include <fstream>
 #include <vector>
 #include <cmath>
@@ -25,8 +26,16 @@ constexpr int TRAINSET_SIZE = 20; // кол-во примеров для тре�
 // ну нефига себя, вот это ты даёшь...
 #include <thread>
 #include <mutex>
+// NVIDIA CUDA
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include <curand_kernel.h>
+#include <curand.h>
 // логгирование
 #include "Logger.h"
 // глобальные функции
 template <typename T>
 T random(T low, T high);
+// глобальные переменные
+cudaError_t cudaStatus;
+std::mutex mu;

@@ -1,33 +1,25 @@
-﻿#include "definitions.h"
-#include "Mtrx.h"
-#include "TrainSet.h"
-#include "Neuro.h"
+﻿//#include "definitions.h"
+//#include "Mtrx.h"
+//#include "TrainSet.h"
+//#include "Neuro.h"
 
-std::mutex mu;
 
-template <typename T>
-T random(T low, T high) {
-	thread_local static std::random_device rd;
-	thread_local static std::mt19937 rng(rd());
-	thread_local std::uniform_real_distribution<> urd;
-	return urd(rng, decltype(urd)::param_type{low,high});
-}
 
-template <typename T>
+/*template <typename T>
 T func(T x) {
 	return sin(x);
-}
+}*/
 
 /*
 * Каждый поток обучает новую нейронку с одним параметром alpha
 * И собирает срез её ошибок каждые epochs шагов.
 * Всего функция делает cols срезов.
 */
-template <typename T>
+/*template <typename T>
 void get(int *layersSizes, TrainSet<T> *trainset, T alpha, T epochs, int cols, MtrxFactory<T> *mtrxFactory) {
 	/*float bestAlpha, bestMSE = INFINITY, MSE;
 	Neuro* bestINN = nullptr;*/
-	Neuro<T> *INN = new Neuro<T>(layersSizes, trainset, mtrxFactory);
+	/*Neuro<T> *INN = new Neuro<T>(layersSizes, trainset, mtrxFactory);
 	T *MSE = new T[cols];
 	auto t1 = std::chrono::high_resolution_clock::now();
 	FOR(i, cols) {
@@ -51,7 +43,7 @@ void get(int *layersSizes, TrainSet<T> *trainset, T alpha, T epochs, int cols, M
 		}
 		else delete INN; // удаляем не особо успешную версию
 	}*/
-	auto t2 = std::chrono::high_resolution_clock::now();
+	/*auto t2 = std::chrono::high_resolution_clock::now();
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
 
 	T *in = new T[INPUT_SIZE];
@@ -78,7 +70,7 @@ void get(int *layersSizes, TrainSet<T> *trainset, T alpha, T epochs, int cols, M
 	float answer = bestINN->train(bestAlpha);
 	std::cout << "MSE = " << answer << std::endl << std::endl << std::endl;
 	*/
-	mu.unlock();
+	/*mu.unlock();
 	//delete bestINN;
 	delete[] in, out;
 }
@@ -146,5 +138,5 @@ int neuroF() {
 	std::cout << "\nC = A*B--------\n";
 	mtrxs[2]->print();*/
 	// добавить проверку конструктора копирования
-	return 0;
-}
+	/*return 0;
+}*/

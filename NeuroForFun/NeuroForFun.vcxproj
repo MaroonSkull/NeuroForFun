@@ -124,7 +124,9 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
+      <InterleaveSourceInPTX>false</InterleaveSourceInPTX>
     </CudaCompile>
+    <CudaLink />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -147,7 +149,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="definitions.h" />
+    <ClInclude Include="HostMtrx.h" />
     <ClInclude Include="Logger.h" />
+    <ClInclude Include="Mtrx.cu.h" />
     <ClInclude Include="Mtrx.h" />
     <ClInclude Include="Neuro.h" />
     <ClInclude Include="TrainSet.h" />

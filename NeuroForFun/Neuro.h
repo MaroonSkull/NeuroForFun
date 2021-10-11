@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "definitions.h"
 #include "Mtrx.h"
+#include "Mtrx.cu.h"
 #include "TrainSet.h"
 
 template <typename T>
