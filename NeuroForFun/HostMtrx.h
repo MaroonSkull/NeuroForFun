@@ -13,7 +13,7 @@ protected:
 	T normalGaussDistribution() const {
 		//float rand = (float)std::rand() / (RAND_MAX / 2) - 1; // получаем число, принадлежащее (-1; 1]
 		T rand = random<T>(-1, 1); // получаем число, принадлежащее (-1; 1]
-		T g = exp(-(pow(rand, 2) / (2 * 0.2))) / (sqrt(0.2) * 2.5); // делаем красивый колокольчик
+		T g = exp(-(pow(rand, static_cast<T>(2)) / (2 * 0.2))) / (sqrt(0.2) * 2.5); // делаем красивый колокольчик
 		if(rand >= 0) return g;
 		return -g; // переворачиваем, если число изначально было отрицательным
 	};
@@ -91,7 +91,7 @@ public:
 			}
 			std::cout << std::endl;
 		}
-		//std::cout << std::endl;
+		std::cout << std::endl;
 	};
 
 	// функция активации

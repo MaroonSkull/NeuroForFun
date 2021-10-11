@@ -29,7 +29,10 @@ __global__ void mtrxKernel(T *A, const size_t pitch, const int h, const int w, c
 	else {
 		curandState state;
 		curand_init(clock(), j * w + i, 0, &state);
-		setElement(A, (T)(j * w + i)/*__expf(-(__powf(curand_uniform(&state), 2.0f) / (2.0f * 0.2f))) / (sqrtf(0.2f) * 2.5f)*/, pitch, j, i);
+		T rand = curand_uniform(&state)*2-1; // получаем число от -1.0, до +1.0
+		if(rand >= 0) {
+			setElement(A, (T)(__expf(-(__powf(rand, 2.0f) / (2.0f * 0.2f))) / (sqrtf(0.2f) * 2.5f)), pitch, j, i);
+		} else setElement(A, (T)(-expf(-(powf(rand, 2.0f) / (2.0f * 0.2f))) / (sqrtf(0.2f) * 2.5f)), pitch, j, i);
 	}
 }
 

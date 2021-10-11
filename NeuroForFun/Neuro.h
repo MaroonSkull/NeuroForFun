@@ -99,7 +99,7 @@ public:
 			// рассчитываем величину ошибки выхода и ошибки всего ответа
 			FOR(i, OUTPUT_SIZE) {
 				errors[errors.size() - 1]->set(i, layers[LAYERS_COUNT - 1]->get(i, 0) - trainOut[i]); // -(T - O) = O - T
-				MSE += pow(errors[errors.size() - 1]->get(i, 0), 2);
+				MSE += pow(errors[errors.size() - 1]->get(i, 0), static_cast<T>(2));
 			}
 			// Вычисляем ошибки для всех весов
 			for(int i = LAYERS_COUNT - 2; i > 0; i--) {
