@@ -19,20 +19,25 @@ __device__ void setElement(T *A, const float param, const size_t pitch, const in
 	pElem[w] = param;
 }
 
+// максимум 256 потоков на блок, если clear == false
 template <typename T>
 __global__ void mtrxKernel(T *A, const size_t pitch, const int h, const int w, const bool clear) {
 	int i = threadIdx.x + blockIdx.x * blockDim.x;
 	int j = threadIdx.y + blockIdx.y * blockDim.y;
 	if(i >= w || j >= h) return;
-	if(clear)
+	if(clear)/* {
+		float *p = (float *)((char *)A + j * pitch);
+		p[i] = 0.0f;
+	}*/
 		setElement(A, 0.0f, pitch, j, i);
-	else {
+	else { // требует, чтобы 
 		curandState state;
 		curand_init(clock(), j * w + i, 0, &state);
-		T rand = curand_uniform(&state)*2-1; // получаем число от -1.0, до +1.0
+		T rand = curand_uniform(&state) * 2 - 1; // получаем число от -1.0, до +1.0
 		if(rand >= 0) {
 			setElement(A, (T)(__expf(-(__powf(rand, 2.0f) / (2.0f * 0.2f))) / (sqrtf(0.2f) * 2.5f)), pitch, j, i);
-		} else setElement(A, (T)(-expf(-(powf(rand, 2.0f) / (2.0f * 0.2f))) / (sqrtf(0.2f) * 2.5f)), pitch, j, i);
+		}
+		else setElement(A, (T)(-expf(-(powf(rand, 2.0f) / (2.0f * 0.2f))) / (sqrtf(0.2f) * 2.5f)), pitch, j, i);
 	}
 }
 
@@ -64,33 +69,39 @@ protected:
 	bool isSynchronized = false;
 
 	bool memorySync() {
-		cudaStatus = cudaMemcpy2D(B, w * sizeof(T)/*no pitch on host*/,
+		if(!CUSAFE(cudaMemcpy2D(B, w * sizeof(T)/*no pitch on host*/,
 			A, pitch/*CUDA pitch*/,
 			w * sizeof(T)/*width in bytes*/, h,
-			cudaMemcpyDeviceToHost);
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "Copy failed: %s\n", cudaGetErrorString(cudaStatus));
-			return false;
-		}
+			cudaMemcpyDeviceToHost), "cudaMemcpy2D"))
+				return isSynchronized; // если не вышло синхронизироваться - не меняем значение isSynchronized, нам ведь неизвестно, было ли до этого всё синхронизированно
 		isSynchronized = true;
 		return true;
 	}
 
 	void getDimensions() {
+
 		// круто, когда sm <=31 штуки, но в иных ситуациях надо следить за тем, чтобы threadsPerBlock был равен или менее 1024
 		// и, со временем, надо будет shared memory учитывать
+
+		// threadsperblock <= bound
+
 		blocksPerGrid = new dim3(w % prop.multiProcessorCount == 0 ? w / prop.multiProcessorCount : w / prop.multiProcessorCount + 1,
 			h % prop.multiProcessorCount == 0 ? h / prop.multiProcessorCount : h / prop.multiProcessorCount + 1);
 		threadsPerBlock = new dim3(w % blocksPerGrid->x == 0 ? w / blocksPerGrid->x : w / blocksPerGrid->x + 1,
 			h % blocksPerGrid->y == 0 ? h / blocksPerGrid->y : h / blocksPerGrid->y + 1);
-		/*std::cout << w << " x " << h << " = " << w * h << " = width, height (x x y)\t" << w * h * sizeof(float) / 1024.0f << "KiB\r\n";
+		std::cout << w << " x " << h << " = " << w * h << " = width, height (x x y)\n";
 		std::cout << blocksPerGrid->x << " x " << blocksPerGrid->y << " = " << blocksPerGrid->x * blocksPerGrid->y << " = blocksPerGrid (x x y)\r\n";
 		std::cout << threadsPerBlock->x << " x " << threadsPerBlock->y << " = " << threadsPerBlock->x * threadsPerBlock->y << " = threadsPerBlock (x x y)\r\n";
 		std::cout << blocksPerGrid->x * threadsPerBlock->x << " x " << blocksPerGrid->y * threadsPerBlock->y << " = " << blocksPerGrid->x * threadsPerBlock->x * blocksPerGrid->y * threadsPerBlock->y << " = threadsPerGrid (x x y)\r\n";
 		std::cout << blocksPerGrid->x * threadsPerBlock->x << " / " << blocksPerGrid->y * threadsPerBlock->y << " = " << blocksPerGrid->x * threadsPerBlock->x / static_cast<float>(blocksPerGrid->y * threadsPerBlock->y) << " = threadsPerGrid (x / y)\r\n";
 		std::cout << w << " / " << h << " = " << static_cast<float>(w) / h << " = width / height\r\n";
-		std::cout << pitch << " = pitch\r\n";*/
+		std::cout << pitch << " = pitch\r\n";
+		std::cout << w * h * sizeof(float) / 1024.0f << " = KiB in RAM\r\n";
+		std::cout << pitch * h / 1024.0f << " = KiB on GPU\r\n\r\n";
+
 	}
+
+	//void getDimensions(): getDimensions(1024) {};
 
 public:
 	GpuMtrx(int h, int w, bool clear) {
@@ -99,48 +110,24 @@ public:
 
 		B = new T[w * h];
 
-		cudaStatus = cudaGetLastError();
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaGetLastError! %d: %s\n", cudaStatus, cudaGetErrorString(cudaStatus));
-			//goto Error;
-		}
+		CUSAFE(cudaGetLastError(), "cudaGetLastError");
 
-		cudaStatus = cudaGetDeviceProperties(&prop, 0); // По умолчанию считаем, что мы работаем с первым устройством.
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaGetDeviceProperties failed!");
-			//goto Error;
-		}
+		CUSAFE(cudaGetDeviceProperties(&prop, 0), "cudaGetDeviceProperties"); // По умолчанию считаем, что мы работаем с первым устройством.
 
-		cudaStatus = cudaMallocPitch(&A, &pitch, w * sizeof(T), h);
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaMallocPitch failed: %d, %s\n", cudaStatus, cudaGetErrorString(cudaStatus));
-			//goto Error;
-		}
+		CUSAFE(cudaMallocPitch(&A, &pitch, w * sizeof(T), h), "cudaMallocPitch");
 
 		//необходимо понять, сколько потоков нам нужно, сколько блоков
 		// наша задача - загрузить все SM на полную катушку.
 		// количество SM = prop.multiProcessorCount
 
 		getDimensions();
-		mtrxKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, pitch, h, w, clear);
+		mtrxKernel<T> <<<*blocksPerGrid, *threadsPerBlock>>> (A, pitch, h, w, clear);
 
-		cudaStatus = cudaGetLastError();
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "mtrxKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			//goto Error;
-		}
+		CUSAFE(cudaGetLastError(), "mtrxKernel launch");
 
-		cudaStatus = cudaDeviceSynchronize();
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceSynchronize returned error code %d (%s) after launching mtrxKernel!\n", cudaStatus, cudaGetErrorString(cudaStatus));
-			//goto Error;
-		}
+		CUSAFE(cudaDeviceSynchronize(), "cudaDeviceSynchronize");
 
-		cudaStatus = cudaGetLastError();
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaGetLastError! %d: %s\n", cudaStatus, cudaGetErrorString(cudaStatus));
-			//goto Error;
-		}
+		CUSAFE(cudaGetLastError(), "cudaGetLastError"); //??? Мб убрать? Выглядит излишним, вроде.
 	};
 
 	GpuMtrx(int Height, int Width): GpuMtrx(Height, Width, !CLEAR) {} // по умолчанию у нас всё заполняется случайными данными
@@ -220,56 +207,13 @@ public:
 			return;
 		}
 
-		/*float *dA = 0;
-		float *dB = 0;
-		size_t size = sizeof(float) * X->w;
-
-		cudaStatus = cudaMalloc((void **)&dA, size);
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaMalloc error %d: %s", cudaStatus, cudaGetErrorString(cudaStatus));
-		}
-
-		cudaStatus = cudaMalloc((void **)&dB, size);
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaMalloc error %d: %s", cudaStatus, cudaGetErrorString(cudaStatus));
-		}*/
-
 		getDimensions();
-		multKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, X->A, Y->A, pitch, X->getPitch(), Y->getPitch(), X->w);
+		multKernel<T> <<<*blocksPerGrid, *threadsPerBlock>>> (A, X->A, Y->A, pitch, X->getPitch(), Y->getPitch(), X->w);
 		isSynchronized = false;
 
-		cudaStatus = cudaGetLastError();
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "multKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
-			//goto Error;
-		}
+		CUSAFE(cudaGetLastError(), "multKernel launch");
 
-		cudaStatus = cudaDeviceSynchronize();
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceSynchronize returned error code %d (%s) after launching multKernel!\n", cudaStatus, cudaGetErrorString(cudaStatus));
-			//goto Error;
-		}
-
-		/*float *aaa = new float, *bbb = new float;
-		cudaStatus = cudaMemcpy(aaa, dA, size, cudaMemcpyDeviceToHost);
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaMemcpy failed!");
-			//goto Error;
-		}
-
-		cudaStatus = cudaMemcpy(bbb, dB, size, cudaMemcpyDeviceToHost);
-		if(cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaMemcpy failed!");
-			//goto Error;
-		}
-
-		FOR(i, size / sizeof(float)) {
-			std::cout << "aaa[" << i << "] = " << aaa[i] << ",\t";
-		}
-
-		FOR(i, size / sizeof(float)) {
-			std::cout << "bbb[" << i << "] = " << bbb[i] << ",\t";
-		}*/
+		CUSAFE(cudaDeviceSynchronize(), "cudaDeviceSynchronize");
 	};
 
 	// поэлементное умножение двух матриц

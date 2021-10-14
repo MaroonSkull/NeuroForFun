@@ -12,6 +12,43 @@ T random(T low, T high) {
 	return urd(rng, decltype(urd)::param_type{low,high});
 }
 
+bool testGpuOnCpuMtrx() {
+	MtrxFactory<float> *gpuMtrxFactory = new GPUMtrxFactory<float>;
+	MtrxFactory<float> *cpuMtrxFactory = new CPUMtrxFactory<float>;
+
+	int m = 20,
+		k = 3,
+		n = 50;
+
+	std::vector<Mtrx<float> *> gm;
+	gm.push_back(gpuMtrxFactory->create(m, k));
+	std::cout << "\r\n\r\n1\r\n\r\n";
+	gm.push_back(gpuMtrxFactory->create(k, n));
+	std::cout << "\r\n\r\n2\r\n\r\n";
+	gm.push_back(gpuMtrxFactory->create(m, n, CLEAR));
+	std::cout << "\r\n\r\n3\r\n\r\n";
+
+	std::vector<Mtrx<float> *> cm;
+	cm.push_back(cpuMtrxFactory->create(m, k, CLEAR));
+	cm.push_back(cpuMtrxFactory->create(k, n, CLEAR));
+	cm.push_back(cpuMtrxFactory->create(m, n, CLEAR));
+	FOR(k, 2)
+		FOR(i, gm[k]->getH())
+		FOR(j, gm[k]->getW())
+		cm[k]->set(i * gm[k]->getW() + j, gm[k]->get(i, j));
+
+	std::cout << "\r\n\r\n4\r\n\r\n";
+	gm[2]->mult(gm[0], gm[1]);
+	std::cout << "\r\n\r\n5\r\n\r\n";
+	cm[2]->mult(cm[0], cm[1]);
+
+	FOR(i, gm[2]->getH())
+		FOR(j, gm[2]->getW())
+			if(cm[2]->get(i, j) != gm[2]->get(i, j)) return false;
+	
+	return true;
+}
+
 int main() {
 	// Choose which GPU to run on, change this on a multi-GPU system.
 	cudaStatus = cudaSetDevice(0);
@@ -19,35 +56,13 @@ int main() {
 		fprintf(stderr, "cudaSetDevice failed! Do you have a CUDA-capable GPU installed?");
 	}
 
-	MtrxFactory<float> *gpuMtrxFactory = new GPUMtrxFactory<float>;
-
-	std::vector<Mtrx<float> *> gm;
-	gm.push_back(gpuMtrxFactory->create(2, 3));
-	gm.push_back(gpuMtrxFactory->create(3, 2));
-	gm.push_back(gpuMtrxFactory->create(2, 2, CLEAR));
-
-	gm[0]->print();
-	gm[1]->print();
-	gm[2]->mult(gm[0], gm[1]);
-	gm[2]->print();
-	
-	MtrxFactory<float> *cpuMtrxFactory = new CPUMtrxFactory<float>;
-
-	//CpuMtrx<float> *keke = new CpuMtrx<float>(2, 3, CLEAR);
-
-	std::vector<Mtrx<float> *> cm;
-	cm.push_back(cpuMtrxFactory->create(2, 3));
-	cm.push_back(cpuMtrxFactory->create(3, 2));
-	cm.push_back(cpuMtrxFactory->create(2, 2, CLEAR));
-
-	cm[0]->print();
-	cm[1]->print();
-	cm[2]->mult(cm[0], cm[1]);
-	cm[2]->print();
 	
 
-		// cudaDeviceReset must be called before exiting in order for profiling and
-		// tracing tools such as Nsight and Visual Profiler to show complete traces.
+	if(testGpuOnCpuMtrx()) std::cout << "passed!";
+	else std::cout << "fail!";
+
+	// cudaDeviceReset must be called before exiting in order for profiling and
+	// tracing tools such as Nsight and Visual Profiler to show complete traces.
 	cudaStatus = cudaDeviceReset();
 	if(cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceReset failed!");
