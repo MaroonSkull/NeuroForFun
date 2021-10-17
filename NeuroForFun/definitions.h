@@ -10,7 +10,6 @@ constexpr int TRAINSET_SIZE = 20; // кол-во примеров для тре�
 // это фичи
 #define FOR(I,UPPERBND) for(int I = 0; I<int(UPPERBND); I++)
 #define _ALIGN(N)  __declspec(align(N))
-#define CUSAFE(FUNC,MSG) cudaSafeCall(cudaError_t(FUNC), MSG)
 
 // это классика
 #include <iomanip>
@@ -37,7 +36,7 @@ constexpr int TRAINSET_SIZE = 20; // кол-во примеров для тре�
 // глобальные функции
 template <typename T>
 T random(T low, T high);
-inline bool cudaSafeCall(cudaError_t cudaStatus, const char *msg) {
+inline bool cuSafe(cudaError_t cudaStatus, const char *msg) {
 	if(cudaStatus != CUDA_SUCCESS) {
 		std::cout << msg << "\r\ncode: " << cudaStatus << ", name: " << cudaGetErrorName(cudaStatus) << ",\r\nmsg: " << cudaGetErrorString(cudaStatus) << ".\r\n\r\n";
 		return false;
