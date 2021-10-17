@@ -24,7 +24,7 @@ public:
 	virtual int getW() const = 0;
 	virtual int getH() const = 0;
 	virtual T get(int h, int w) = 0;
-	virtual int XY(int height, int width) const = 0;
+	virtual inline int XY(int height, int width) const = 0;
 };
 
 // Фабрики матриц

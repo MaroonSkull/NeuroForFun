@@ -119,7 +119,7 @@ __global__ void transposeKernel(T *A, T *At, const size_t pitch, const size_t pi
 	unsigned int idx = blockDim.x * blockIdx.x + threadIdx.x;
 	unsigned int idy = blockDim.y * blockIdx.y + threadIdx.y;
 	if(idx >= w || idy >= h) return;
-	
+
 	setElement(At, getElement(A, pitch, idy, idx), pitchT, idx, idy);
 }
 
@@ -128,8 +128,8 @@ class GpuMtrx: public Mtrx<T> {
 protected:
 	size_t pitch = 0; // ширина строк матрицы в памяти карты
 	size_t pitchT = 0; // ширина строк транспонированной матрицы в памяти карты
-	dim3 *blocksPerGrid = nullptr;
-	dim3 *threadsPerBlock = nullptr;
+	dim3 blocksPerGrid = 0;
+	dim3 threadsPerBlock = 0;
 	cudaDeviceProp prop;
 
 	T *A = nullptr; // указатель на память gpu
@@ -139,16 +139,6 @@ protected:
 	int h;
 	bool isSynchronized = false;
 
-	bool memorySync() {
-		if(!cuSafe(cudaMemcpy2D(B, w * sizeof(T)/*no pitch on host*/,
-			A, pitch/*CUDA pitch*/,
-			w * sizeof(T)/*width in bytes*/, h,
-			cudaMemcpyDeviceToHost), "cudaMemcpy2D"))
-			return isSynchronized; // если не вышло синхронизироваться - не меняем значение isSynchronized, нам ведь неизвестно, было ли до этого всё синхронизированно
-		isSynchronized = true;
-		return true;
-	}
-
 	void getDimensions() {
 
 		// круто, когда sm <=31 штуки, но в иных ситуациях надо следить за тем, чтобы threadsPerBlock был равен или менее 1024
@@ -156,10 +146,10 @@ protected:
 
 		// threadsperblock <= bound
 
-		blocksPerGrid = new dim3(w % prop.multiProcessorCount == 0 ? w / prop.multiProcessorCount : w / prop.multiProcessorCount + 1,
-			h % prop.multiProcessorCount == 0 ? h / prop.multiProcessorCount : h / prop.multiProcessorCount + 1);
-		threadsPerBlock = new dim3(w % blocksPerGrid->x == 0 ? w / blocksPerGrid->x : w / blocksPerGrid->x + 1,
-			h % blocksPerGrid->y == 0 ? h / blocksPerGrid->y : h / blocksPerGrid->y + 1);
+		blocksPerGrid.x = w % prop.multiProcessorCount == 0 ? w / prop.multiProcessorCount : w / prop.multiProcessorCount + 1;
+		blocksPerGrid.y = h % prop.multiProcessorCount == 0 ? h / prop.multiProcessorCount : h / prop.multiProcessorCount + 1;
+		threadsPerBlock.x = w % blocksPerGrid.x == 0 ? w / blocksPerGrid.x : w / blocksPerGrid.x + 1;
+		threadsPerBlock.y = h % blocksPerGrid.y == 0 ? h / blocksPerGrid.y : h / blocksPerGrid.y + 1;
 		/*std::cout << w << " x " << h << " = " << w * h << " = width, height (x x y)\n";
 		std::cout << blocksPerGrid->x << " x " << blocksPerGrid->y << " = " << blocksPerGrid->x * blocksPerGrid->y << " = blocksPerGrid (x x y)\r\n";
 		std::cout << threadsPerBlock->x << " x " << threadsPerBlock->y << " = " << threadsPerBlock->x * threadsPerBlock->y << " = threadsPerBlock (x x y)\r\n";
@@ -191,30 +181,44 @@ public:
 		// количество SM = prop.multiProcessorCount
 
 		getDimensions();
-		mtrxKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, pitch, h, w, clear);
+		mtrxKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, pitch, h, w, clear);
 		cuSafe(cudaGetLastError(), "mtrxKernel launch");
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ожидаем завершения инициализации матрицы в памяти карточки
 	};
 
 	GpuMtrx(int Height, int Width): GpuMtrx(Height, Width, !CLEAR) {} // по умолчанию у нас всё заполняется случайными данными
 
-	GpuMtrx(const Mtrx<T> &mtrx): Mtrx<T>(mtrx) { // !!!! исправить
-		/*const GpuMtrx<T> &X = static_cast<const GpuMtrx<T>&>(mtrx);
+	GpuMtrx(const Mtrx<T> &mtrx): Mtrx<T>(mtrx) { // # протестировать
+		const GpuMtrx<T> &X = static_cast<const GpuMtrx<T>&>(mtrx);
+
+		pitch = X.pitch;
+		pitchT = X.pitchT;
+
+		prop = X.prop;
+
 		w = X.w;
 		h = X.h;
-		isTransposed = X.isTransposed;
-		isSynchronized = X.isSynchronized;
-		*/
-		//A = new float[h * w];
-		//FOR(i, w * h)
-			//A[i] = X.A[i];
+		isSynchronized = false;
+
+		B = new T[w * h];
+
+		cuSafe(cudaMallocPitch(&A, &pitch, w * sizeof(T), h), "cudaMallocPitch");
+		cuSafe(cudaMallocPitch(&At, &pitchT, h * sizeof(T), w), "cudaMallocPitch");
+
+		FOR(i, w * h) {
+			B[i] = X.B[i];
+		}
+		FOR(i, h) {
+			FOR(j, w) {
+				set(i + j, X.B[i + j]);
+			}
+		}
 	};
 
-	~GpuMtrx() { // !!!! исправить
-		/*std::cout << "~Mtrx\r\n";
+	~GpuMtrx() {
 		cudaFree(A);
-		delete A;
-		delete[] B;*/
+		cudaFree(At);
+		delete[] B;
 	};
 
 	void print() {
@@ -232,7 +236,7 @@ public:
 	// функция активации
 	void activation() {
 		getDimensions();
-		activationKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, pitch, h, w);
+		activationKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, pitch, h, w);
 		cuSafe(cudaGetLastError(), "activationKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ожидаем завершения активации матрицы
@@ -241,7 +245,7 @@ public:
 	// производная для функции акттивации
 	void dActivation() { // спорный момент, но вроде, сигмоида не нужна лишний раз
 		getDimensions();
-		dActivationKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, pitch, h, w);
+		dActivationKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, pitch, h, w);
 		cuSafe(cudaGetLastError(), "dActivationKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ожидаем завершения
@@ -250,7 +254,7 @@ public:
 	// функция, получающая x из значения сигмоиды
 	void backActivation() {
 		getDimensions();
-		backActivationKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, pitch, h, w);
+		backActivationKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, pitch, h, w);
 		cuSafe(cudaGetLastError(), "backActivationKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ожидаем завершения
@@ -274,7 +278,7 @@ public:
 		}
 
 		getDimensions();
-		multKernel<T> <<<*blocksPerGrid, *threadsPerBlock >>> (A, X->A, Y->A, pitch, X->getPitch(), Y->getPitch(), h, w, X->w);
+		multKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, X->A, Y->A, pitch, X->getPitch(), Y->getPitch(), h, w, X->w);
 		cuSafe(cudaGetLastError(), "multKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ждём, пока карточка закончит умножение
@@ -289,7 +293,7 @@ public:
 		}
 
 		getDimensions();
-		lineMultKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, X->A, pitch, X->getPitch(), h, w);
+		lineMultKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, X->A, pitch, X->getPitch(), h, w);
 		cuSafe(cudaGetLastError(), "lineMultKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ждём, пока карточка закончит умножение
@@ -298,7 +302,7 @@ public:
 	// умножение матрицы на коэффициент
 	void coeffMult(T coeff) {
 		getDimensions();
-		coeffMultKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, coeff, pitch, h, w);
+		coeffMultKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, coeff, pitch, h, w);
 		cuSafe(cudaGetLastError(), "coeffMultKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ожидаем завершения
@@ -313,7 +317,7 @@ public:
 		}
 
 		getDimensions();
-		lineSubKernel<T> << <*blocksPerGrid, *threadsPerBlock >> > (A, X->A, pitch, X->getPitch(), h, w);
+		lineSubKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, X->A, pitch, X->getPitch(), h, w);
 		cuSafe(cudaGetLastError(), "lineSubKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ожидаем завершения
@@ -322,7 +326,7 @@ public:
 	void transpose() {
 		// честно транспонируем матрицу
 		getDimensions();
-		transposeKernel<T> <<<*blocksPerGrid, *threadsPerBlock >>> (A, At, pitch, pitchT, h, w);
+		transposeKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, At, pitch, pitchT, h, w);
 		cuSafe(cudaGetLastError(), "transposeKernel launch");
 		{ // меняем местами значения ширины и высоты
 			int tmp = h;
@@ -346,7 +350,7 @@ public:
 	// часть хака по принудительной установке данных вместо случайных
 	void set(int i, T num) {
 		getDimensions();
-		setKernel<T> <<<*blocksPerGrid, *threadsPerBlock >>> (A, num, pitch, i / w, i - (i / w) * w);
+		setKernel<T><<<blocksPerGrid, threadsPerBlock>>>(A, num, pitch, i / w, i - (i / w) * w);
 		cuSafe(cudaGetLastError(), "setKernel launch");
 		isSynchronized = false;
 		cuSafe(cudaDeviceSynchronize(), "cudaDeviceSynchronize"); // ожидаем завершения
@@ -370,12 +374,25 @@ public:
 		return B[XY(h, w)];
 	};
 
+	T constGet(int h, int w) const {
+		return B[XY(h, w)];
+	}
+
+	bool memorySync() {
+		if(!cuSafe(cudaMemcpy2D(B, w * sizeof(T)/*no pitch on host*/,
+			A, pitch/*CUDA pitch*/,
+			w * sizeof(T)/*width in bytes*/, h,
+			cudaMemcpyDeviceToHost), "cudaMemcpy2D"))
+			return isSynchronized; // если не вышло синхронизироваться - не меняем значение isSynchronized, нам ведь неизвестно, было ли до этого всё синхронизированно
+		isSynchronized = true;
+		return true;
+	}
 	/*
 	* Функция получает координаты двумерного массива и
 	* преобразовывает их в координату одномерного
 	* массива, хранящегося в памяти объекта.
 	*/
-	int XY(int height, int width) const {
+	inline int XY(int height, int width) const {
 		return w * height + width;
 	};
 };

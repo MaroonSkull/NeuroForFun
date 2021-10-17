@@ -212,11 +212,8 @@ public:
 	* преобразовывает их в координату одномерного
 	* массива, хранящегося в памяти объекта.
 	*/
-	int XY(int height, int width) const {
-		if(!isTransposed)
-			return w * height + width;
-		else
-			return h * width + height;
+	inline int XY(int height, int width) const {
+		return !isTransposed ? w * height + width : h * width + height;
 	};
 };
 
