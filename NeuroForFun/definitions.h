@@ -2,7 +2,7 @@
 
 #define CLEAR true
 
-constexpr int LAYERS_COUNT = 6; // перенести этот блок в данные, которые передаются в код.
+constexpr int LAYERS_COUNT = 18; // перенести этот блок в данные, которые передаются в код.
 constexpr int INPUT_SIZE = 1;
 constexpr int OUTPUT_SIZE = 1;
 constexpr int TRAINSET_SIZE = 20; // кол-во примеров для тренировки

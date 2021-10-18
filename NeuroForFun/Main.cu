@@ -250,13 +250,13 @@ int main() {
 	float trIn[TRAINSET_SIZE * INPUT_SIZE];
 	float trOut[TRAINSET_SIZE * OUTPUT_SIZE];
 	float x = 0, maxX = std::_Pi, num = 20, stepX = (maxX - x) / (num - 1);
-	int epochs = 1000, cols = 10;
+	int epochs = 50, cols = 10;
 	FOR(i, TRAINSET_SIZE) {
 		trIn[i] = x;
 		trOut[i] = func<float>(x);
 		x += stepX;
 	}
-	int *layersSizes = new int[LAYERS_COUNT] { INPUT_SIZE, 16, 16, 16, 16, OUTPUT_SIZE };
+	int *layersSizes = new int[LAYERS_COUNT] { INPUT_SIZE, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, OUTPUT_SIZE };
 	std::vector<TrainSet<float> *> trainsets;
 	trainsets.push_back(new TrainSet<float>(trIn, trOut, TRAINSET_SIZE, INPUT_SIZE, OUTPUT_SIZE));
 
