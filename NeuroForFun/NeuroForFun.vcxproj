@@ -127,6 +127,9 @@
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <InterleaveSourceInPTX>false</InterleaveSourceInPTX>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <PtxAsOptionV>true</PtxAsOptionV>
+      <MaxRegCount>0</MaxRegCount>
+      <CodeGeneration>compute_52,sm_52;compute_60,sm_60;compute_61,sm_61;compute_70,sm_70;compute_75,sm_75;compute_80,sm_80;compute_86,sm_86</CodeGeneration>
     </CudaCompile>
     <CudaLink />
   </ItemDefinitionGroup>
