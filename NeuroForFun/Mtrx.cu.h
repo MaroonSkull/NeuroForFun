@@ -139,12 +139,7 @@ protected:
 	int h;
 	bool isSynchronized = false;
 
-	void getDimensions() {
-
-		// круто, когда sm <=31 штуки, но в иных ситуациях надо следить за тем, чтобы threadsPerBlock был равен или менее 1024
-		// и, со временем, надо будет shared memory учитывать
-
-		// threadsperblock <= bound
+	void getDimensions(int bounds = 1024) {
 
 		blocksPerGrid.x = w % prop.multiProcessorCount == 0 ? w / prop.multiProcessorCount : w / prop.multiProcessorCount + 1;
 		blocksPerGrid.y = h % prop.multiProcessorCount == 0 ? h / prop.multiProcessorCount : h / prop.multiProcessorCount + 1;
@@ -161,8 +156,6 @@ protected:
 		std::cout << pitch * h / 1024.0f << " = KiB on GPU\r\n\r\n";
 		/**/
 	}
-
-	//void getDimensions(): getDimensions(1024) {};
 
 public:
 	GpuMtrx(int h, int w, bool clear) {
